@@ -183,13 +183,12 @@ const LayoutBase = props => {
             </div>
 
             {/* 底部 */}
-            <div className='md:hidden'>
-              <Footer {...props} />
-              //下面四行代码是我自己瞎写的（shinansky）
-              <a href="https://www.blogsclub.org/rank.html" target="_blank">
-        <img src="https://www.blogsclub.org/badge/shinansky.me" 
+<a href="https://www.blogsclub.org/rank.html" target="_blank">
+        <img src="https://www.blogsclub.org/badge/您在BlogsClub填写的域名，不加http(s)://以及末尾的斜杠" 
              style="height:60px!important">
     </a>
+            <div className='md:hidden'>
+              <Footer {...props} />
             </div>
           </div>
 
