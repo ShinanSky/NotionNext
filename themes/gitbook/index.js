@@ -185,6 +185,11 @@ const LayoutBase = props => {
             {/* 底部 */}
             <div className='md:hidden'>
               <Footer {...props} />
+              //下面四行代码是我自己瞎写的（shinansky）
+              <a href="https://www.blogsclub.org/rank.html" target="_blank">
+        <img src="https://www.blogsclub.org/badge/shinansky.me" 
+             style="height:60px!important">
+    </a>
             </div>
           </div>
 
