@@ -32,14 +32,33 @@ const Footer = ({ siteInfo }) => {
 
       {siteConfig('BEI_AN') && (
         <>
-          <i className='fas fa-shield-alt' />{' '}
-          <a href={siteConfig('BEI_AN_LINK')} className='mr-2'>
-            {siteConfig('BEI_AN')}
-          </a>
-          <BeiAnGongAn />
+        {/* 第一个备案信息 */}
+          <div className="my-1">
+            <i className='fas fa-shield-alt' />{' '}
+            <a href={siteConfig('BEI_AN_LINK')} className='mr-2'>
+              {siteConfig('BEI_AN')}
+            </a>
+            <BeiAnGongAn />
+          </div>
+          
+          {/* 第二个备案信息 - 上下关系排列 */}
+          <div className="my-1">
+            <a href="https://icp.redcha.cn/beian/ICP-2025070020.html">
+              <img src="https://icp.redcha.cn/static/picture/icplogoi.png" style={{height: '20px', verticalAlign: 'middle'}} alt="茶ICP备案图标" />
+              茶ICP备2025070020号
+            </a>
+          </div>
           <br />
         </>
       )}
+          //<i className='fas fa-shield-alt' />{' '}
+          //<a href={siteConfig('BEI_AN_LINK')} className='mr-2'>
+            //{siteConfig('BEI_AN')}
+          //</a>
+          //<BeiAnGongAn />
+          //<br />
+        //</>
+      //)}
 
       <span className='hidden busuanzi_container_site_pv'>
         <i className='fas fa-eye' />
