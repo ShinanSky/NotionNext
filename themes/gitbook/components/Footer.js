@@ -19,7 +19,7 @@ const Footer = ({ siteInfo }) => {
 
       <div className='flex justify-center'>
         <div>
-          <i className='mx-1 animate-pulse fas fa-heart' />{' '}
+          <i className='mx-1 animate-pulse fas fa-pen' />{' '}
           <a
             href={siteConfig('LINK')}
             className='underline font-bold text-gray-500 dark:text-gray-300 '>
