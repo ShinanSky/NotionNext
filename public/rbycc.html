@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>平假名速记 — 小测验</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#60a5fa;--muted:#94a3b8;--success:#16a34a;--danger:#ef4444}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,'Noto Sans CJK SC',"Hiragino Kaku Gothic ProN",sans-serif;background:linear-gradient(180deg,#071029 0%, #0f1724 100%);color:#e6eef8;display:flex;align-items:center;justify-content:center;padding:24px}
+
+    .app{width:min(760px,96vw);background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;padding:28px;box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    header h1{font-size:18px;margin:0}
+    .meta{color:var(--muted);font-size:13px}
+
+    .stage{display:grid;grid-template-columns:1fr;gap:18px;align-items:center;justify-items:center}
+
+    .card{width:100%;max-width:520px;background:var(--card);border-radius:10px;padding:28px;text-align:center;box-shadow:0 6px 18px rgba(2,6,23,0.5);border:1px solid rgba(255,255,255,0.02)}
+
+    .kana{font-size:120px;line-height:1;height:150px;display:flex;align-items:center;justify-content:center;animation:pop .45s ease both}
+    @keyframes pop{0%{transform:scale(.6) rotateX(-20deg);opacity:0}60%{transform:scale(1.06) rotateX(6deg);opacity:1}100%{transform:scale(1) rotateX(0)}}
+
+    .choices{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:8px}
+    .choice{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      padding:12px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.03);
+      cursor:pointer;
+      user-select:none;
+      font-size:18px;
+      transition:transform .14s ease,box-shadow .14s ease;
+      color: #fff;  /* 这里改成白色 */
+    }
+    .choice:active{transform:translateY(2px)}
+
+    .choice.correct{outline:3px solid rgba(22,163,74,0.12);box-shadow:0 8px 18px rgba(16,185,129,0.06)}
+    .choice.wrong{outline:3px solid rgba(239,68,68,0.12);box-shadow:0 8px 18px rgba(239,68,68,0.04)}
+
+    .feedback{height:28px;margin-top:8px;font-weight:600}
+    .feedback.ok{color:var(--success)}
+    .feedback.bad{color:var(--danger)}
+
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:inherit;cursor:pointer}
+
+    .progress{height:8px;background:rgba(255,255,255,0.04);border-radius:999px;margin-top:12px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#7dd3fc);width:0%;transition:width .45s ease}
+
+    .small{font-size:13px;color:var(--muted)}
+
+    /* 错误抖动 */
+    @keyframes shake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+    .shake{animation:shake .45s ease}
+
+    /* 简易响应式 */
+    @media (max-width:480px){.kana{font-size:88px;height:120px}}
+  </style>
+</head>
+<body>
+  <main class="app" role="main">
+    <header>
+      <h1>平假名速记测验</h1>
+      <div class="meta">得分: <span id="score">0</span> / <span id="attempts">0</span></div>
+      <div class="controls-top">
+        <label class="small">显示时间: <input id="timeSlider" class="slider" type="range" min="0.5" max="5" step="0.1" value="1.5"></label>
+      </div>
+    </header>
+
+    <section class="stage">
+      <div class="card" aria-live="polite">
+        <div id="kana" class="kana">あ</div>
+        <div id="kanaHint" class="small" style="opacity:.7">按数字键 1–4 或点击选项</div>
+
+        <div class="choices" id="choices" role="radiogroup" aria-labelledby="kana">
+          <!-- buttons injected -->
+        </div>
+
+        <div class="feedback" id="feedback" aria-atomic="true"></div>
+
+        <div class="controls">
+          <button id="nextBtn" class="btn">跳过 (→)</button>
+          <button id="shuffleBtn" class="btn">打乱顺序</button>
+          <div style="flex:1"></div>
+          <div class="small">进度</div>
+        </div>
+        <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+      </div>
+
+      <div style="width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center">
+        <div class="small">数据集：平假名（含浊音/拗音）</div>
+        <div class="small">不重复随机出题</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 基础平假名与读音（罗马音）。为简洁起见，这里包含 46 个常用平假名。
+    const dataset = [
+      {k:'あ', r:'a'},{k:'い', r:'i'},{k:'う', r:'u'},{k:'え', r:'e'},{k:'お', r:'o'},
+      {k:'か', r:'ka'},{k:'き', r:'ki'},{k:'く', r:'ku'},{k:'け', r:'ke'},{k:'こ', r:'ko'},
+      {k:'さ', r:'sa'},{k:'し', r:'shi'},{k:'す', r:'su'},{k:'せ', r:'se'},{k:'そ', r:'so'},
+      {k:'た', r:'ta'},{k:'ち', r:'chi'},{k:'つ', r:'tsu'},{k:'て', r:'te'},{k:'と', r:'to'},
+      {k:'な', r:'na'},{k:'に', r:'ni'},{k:'ぬ', r:'nu'},{k:'ね', r:'ne'},{k:'の', r:'no'},
+      {k:'は', r:'ha'},{k:'ひ', r:'hi'},{k:'ふ', r:'fu'},{k:'へ', r:'he'},{k:'ほ', r:'ho'},
+      {k:'ま', r:'ma'},{k:'み', r:'mi'},{k:'む', r:'mu'},{k:'め', r:'me'},{k:'も', r:'mo'},
+      {k:'や', r:'ya'},{k:'ゆ', r:'yu'},{k:'よ', r:'yo'},
+      {k:'ら', r:'ra'},{k:'り', r:'ri'},{k:'る', r:'ru'},{k:'れ', r:'re'},{k:'ろ', r:'ro'},
+      {k:'わ', r:'wa'},{k:'を', r:'wo'},{k:'ん', r:'n'},
+      {k:'が', r:'ga'},{k:'ぎ', r:'gi'},{k:'ぐ', r:'gu'},{k:'げ', r:'ge'},{k:'ご', r:'go'},
+      {k:'ざ', r:'za'},{k:'じ', r:'ji'},{k:'ず', r:'zu'},{k:'ぜ', r:'ze'},{k:'ぞ', r:'zo'},
+      {k:'だ', r:'da'},{k:'ぢ', r:'ji'},{k:'づ', r:'zu'},{k:'で', r:'de'},{k:'ど', r:'do'},
+      {k:'ば', r:'ba'},{k:'び', r:'bi'},{k:'ぶ', r:'bu'},{k:'べ', r:'be'},{k:'ぼ', r:'bo'},
+      {k:'ぱ', r:'pa'},{k:'ぴ', r:'pi'},{k:'ぷ', r:'pu'},{k:'ぺ', r:'pe'},{k:'ぽ', r:'po'},
+      {k:'きゃ', r:'kya'},{k:'きゅ', r:'kyu'},{k:'きょ', r:'kyo'},
+      {k:'しゃ', r:'sha'},{k:'しゅ', r:'shu'},{k:'しょ', r:'sho'},
+      {k:'ちゃ', r:'cha'},{k:'ちゅ', r:'chu'},{k:'ちょ', r:'cho'},
+      {k:'にゃ', r:'nya'},{k:'にゅ', r:'nyu'},{k:'にょ', r:'nyo'},
+      {k:'ひゃ', r:'hya'},{k:'ひゅ', r:'hyu'},{k:'ひょ', r:'hyo'},
+      {k:'みゃ', r:'mya'},{k:'みゅ', r:'myu'},{k:'みょ', r:'myo'},
+      {k:'りゃ', r:'rya'},{k:'りゅ', r:'ryu'},{k:'りょ', r:'ryo'},
+      {k:'ぎゃ', r:'gya'},{k:'ぎゅ', r:'gyu'},{k:'ぎょ', r:'gyo'},
+      {k:'じゃ', r:'ja'},{k:'じゅ', r:'ju'},{k:'じょ', r:'jo'},
+      {k:'びゃ', r:'bya'},{k:'びゅ', r:'byu'},{k:'びょ', r:'byo'},
+      {k:'ぴゃ', r:'pya'},{k:'ぴゅ', r:'pyu'},{k:'ぴょ', r:'pyo'}
+    ];
+
+    // DOM
+    const kanaEl = document.getElementById('kana');
+    const choicesEl = document.getElementById('choices');
+    const feedbackEl = document.getElementById('feedback');
+    const scoreEl = document.getElementById('score');
+    const attemptsEl = document.getElementById('attempts');
+    const bar = document.getElementById('bar');
+    const nextBtn = document.getElementById('nextBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const timeSlider = document.getElementById('timeSlider');
+
+    let score=0, attempts=0, current=null, order=[];
+    const totalRounds = 20; // 练习轮数，页面进度条基于此
+    let displaytime = 1500;
+
+    // 工具函数
+    function randInt(n){return Math.floor(Math.random()*n)}
+    function sample(arr,k){const res=[];const used=new Set();while(res.length<k){const i=randInt(arr.length);if(!used.has(i)){used.add(i);res.push(arr[i])}}return res}
+
+    // 生成题目序列（随机抽取 totalRounds 个不重复项，若数据集不足则允许重复）
+    function makeOrder(){order=[];const pool = [...dataset];if(pool.length>=totalRounds){
+      const ids = sample(pool,totalRounds);
+      order = ids.map(item=>item);
+    } else {
+      for(let i=0;i<totalRounds;i++) order.push(dataset[randInt(dataset.length)])
+    }}
+
+    function renderProgress(){const pct = Math.round((attempts/totalRounds)*100);bar.style.width = pct + '%'}
+
+    function nextQuestion(){
+      // 清除提示
+      feedbackEl.textContent='';feedbackEl.className='feedback';
+      // 取出下一题
+      if(order.length===0) makeOrder();
+      current = order.shift();
+      // 显示字符
+      kanaEl.textContent = current.k;
+      kanaEl.classList.remove('shake');
+
+      // 生成选项（包含正确答案 + 3 个干扰）
+      const others = dataset.filter(d=>d.r !== current.r);
+      const opts = sample(others,3).map(o=>o.r).concat(current.r);
+      // 随机打乱
+      for(let i=opts.length-1;i>0;i--){const j=randInt(i+1);[opts[i],opts[j]]=[opts[j],opts[i]]}
+
+      // 渲染
+      choicesEl.innerHTML='';
+      opts.forEach((text,idx)=>{
+        const btn = document.createElement('button');
+        btn.className='choice';
+        btn.type='button';
+        btn.setAttribute('data-value', text);
+        btn.setAttribute('aria-checked','false');
+        btn.setAttribute('role','radio');
+        btn.innerHTML = `<div style="font-weight:700">${idx+1}. ${text}</div>`;
+        btn.addEventListener('click', ()=>selectAnswer(btn));
+        choicesEl.appendChild(btn);
+      });
+
+      // animate re-pop
+      void kanaEl.offsetWidth;
+      kanaEl.style.animation = 'none';
+      requestAnimationFrame(()=>kanaEl.style.animation='pop .45s ease both');
+
+      // enable keys
+      listening = true;
+    }
+
+    function lockChoices(){Array.from(choicesEl.children).forEach(b=>b.disabled=true)}
+
+    function selectAnswer(btn){
+      if(btn.disabled) return;
+      lockChoices();
+      const chosen = btn.getAttribute('data-value');
+      attempts++;
+      attemptsEl.textContent = attempts;
+
+      const correct = current.r;
+      if(chosen === correct){
+        score++;
+        scoreEl.textContent = score;
+        btn.classList.add('correct');
+        feedbackEl.textContent = '✅ 正确！';
+        feedbackEl.classList.add('ok');
+      } else {
+        btn.classList.add('wrong');
+        // 标注正确选项
+        const correctBtn = Array.from(choicesEl.children).find(b=>b.getAttribute('data-value')===correct);
+        if(correctBtn) correctBtn.classList.add('correct');
+        feedbackEl.textContent = `✖ 错误 — 正确读音：${correct}`;
+        feedbackEl.classList.add('bad');
+        // 抖动 kana
+        kanaEl.classList.add('shake');
+      }
+
+      renderProgress();
+      // 下一题
+      setTimeout(()=>{
+        if(attempts>=totalRounds){
+          showSummary();
+        } else {
+          nextQuestion();
+        }
+      },displaytime);
+    }
+
+    function showSummary(){
+      choicesEl.innerHTML='';
+      feedbackEl.textContent = `完成！得分 ${score} / ${attempts}。按“重新开始”继续练习。`;
+      const replay = document.createElement('button');
+      replay.className='btn';
+      replay.textContent='重新开始';
+      replay.addEventListener('click', ()=>reset());
+      choicesEl.appendChild(replay);
+    }
+
+    function reset(){score=0;attempts=0;scoreEl.textContent=0;attemptsEl.textContent=0;bar.style.width='0%';makeOrder();nextQuestion();}
+
+    // 按键支持
+    let listening = true;
+    window.addEventListener('keydown', (e)=>{
+      if(!listening) return;
+      if(e.key >= '1' && e.key <= '4'){
+        const idx = Number(e.key) - 1;
+        const btn = choicesEl.children[idx];
+        if(btn) btn.click();
+      } else if(e.key === 'ArrowRight'){
+        nextBtn.click();
+      }
+    });
+
+    nextBtn.addEventListener('click', ()=>{
+      // 视作跳过：显示正确答案并进入下一题
+      lockChoices();
+      attempts++;
+      attemptsEl.textContent = attempts;
+      const correct = current.r;
+      const correctBtn = Array.from(choicesEl.children).find(b=>b.getAttribute('data-value')===correct);
+      if(correctBtn) correctBtn.classList.add('correct');
+      feedbackEl.textContent = `跳过 — 正确读音：${correct}`;
+      feedbackEl.classList.add('bad');
+      renderProgress();
+      setTimeout(()=>{
+        if(attempts>=totalRounds) showSummary(); else nextQuestion();
+      },displaytime);
+    });
+
+    shuffleBtn.addEventListener('click', ()=>{
+      // 重新渲染当前题目以打乱选项
+      nextQuestion();
+    });
+    timeSlider.addEventListener('input', ()=>{displaytime = parseFloat(timeSlider.value)*1000});
+    // 初始化
+    makeOrder();
+    nextQuestion();
+  </script>
+</body>
+</html>
