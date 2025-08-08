@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>平假名学习小测验</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    background: #282c34;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    user-select: none;
+  }
+  .container {
+    text-align: center;
+    width: 320px;
+  }
+  .hiragana {
+    font-size: 6rem;
+    margin-bottom: 1rem;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+  .fade-out {
+    opacity: 0;
+  }
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  button.option {
+    background: #3a3f51;
+    border: none;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    color: #eee;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  button.option:hover {
+    background: #5a5f7d;
+  }
+  .feedback {
+    font-size: 1.25rem;
+    height: 1.5rem;
+    margin-bottom: 0.5rem;
+    min-height: 1.5rem;
+    color: #88cc88;
+  }
+  .feedback.incorrect {
+    color: #cc6666;
+  }
+</style>
+</head>
+<body>
+  <div class="container" role="main">
+    <div id="hiragana" class="hiragana" aria-live="polite">あ</div>
+    <div class="options" role="list">
+      <!-- Buttons will be inserted here -->
+    </div>
+    <div id="feedback" class="feedback" aria-live="assertive"></div>
+  </div>
+
+<script>
+  // 平假名表：字符 + 正确罗马音
+  const hiraganaList = [
+    { char: 'あ', romaji: 'a' },
+    { char: 'い', romaji: 'i' },
+    { char: 'う', romaji: 'u' },
+    { char: 'え', romaji: 'e' },
+    { char: 'お', romaji: 'o' },
+    { char: 'か', romaji: 'ka' },
+    { char: 'き', romaji: 'ki' },
+    { char: 'く', romaji: 'ku' },
+    { char: 'け', romaji: 'ke' },
+    { char: 'こ', romaji: 'ko' }
+    // 你可以扩展更多平假名
+  ];
+
+  const optionsCount = 4;
+  let currentIndex = 0;
+
+  const hiraganaDiv = document.getElementById('hiragana');
+  const optionsDiv = document.querySelector('.options');
+  const feedbackDiv = document.getElementById('feedback');
+
+  // 随机打乱数组
+  function shuffleArray(arr) {
+    return arr
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+  }
+
+  // 生成选项（包含正确答案和随机错误答案）
+  function generateOptions(correctRomaji) {
+    // 除去正确答案，选三个随机错误选项
+    let wrongOptions = hiraganaList
+      .filter(h => h.romaji !== correctRomaji)
+      .map(h => h.romaji);
+
+    wrongOptions = shuffleArray(wrongOptions).slice(0, optionsCount - 1);
+
+    // 把正确答案加进去，打乱顺序
+    const allOptions = shuffleArray([correctRomaji, ...wrongOptions]);
+
+    return allOptions;
+  }
+
+  // 显示当前字符和选项
+  function showCurrent() {
+    feedbackDiv.textContent = '';
+    const current = hiraganaList[currentIndex];
+    
+    // 动画淡出
+    hiraganaDiv.classList.add('fade-out');
+    setTimeout(() => {
+      hiraganaDiv.textContent = current.char;
+      hiraganaDiv.classList.remove('fade-out');
+    }, 500);
+
+    // 清空选项
+    optionsDiv.innerHTML = '';
+
+    // 生成选项按钮
+    const opts = generateOptions(current.romaji);
+    opts.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = opt;
+      btn.setAttribute('type', 'button');
+      btn.addEventListener('click', () => {
+        checkAnswer(opt);
+      });
+      optionsDiv.appendChild(btn);
+    });
+  }
+
+  // 检查答案，显示反馈并跳转下一题
+  function checkAnswer(selected) {
+    const correct = hiraganaList[currentIndex].romaji;
+    if (selected === correct) {
+      feedbackDiv.textContent = '回答正确 🎉';
+      feedbackDiv.classList.remove('incorrect');
+    } else {
+      feedbackDiv.textContent = `错误，正确读音是 "${correct}"`;
+      feedbackDiv.classList.add('incorrect');
+    }
+    // 禁用按钮防止多次点击
+    Array.from(optionsDiv.children).forEach(btn => btn.disabled = true);
+
+    // 等1.5秒切换下一题
+    setTimeout(() => {
+      currentIndex = (currentIndex + 1) % hiraganaList.length;
+      showCurrent();
+    }, 1500);
+  }
+
+  // 初始化
+  showCurrent();
+
+</script>
+</body>
+</html>

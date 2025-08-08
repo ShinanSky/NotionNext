@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语平假名学习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // 主色调：靛蓝色，代表知识和学习
+                        secondary: '#EC4899', // 辅助色：粉色，用于强调
+                        correct: '#10B981', // 正确答案色：绿色
+                        incorrect: '#EF4444', // 错误答案色：红色
+                        neutral: '#1F2937', // 中性色：深灰
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        japanese: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-hover {
+                @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+            }
+            .char-animation {
+                @apply transition-all duration-500 transform;
+            }
+            .btn-appear {
+                animation: btnAppear 0.5s ease-out forwards;
+            }
+            .correct-animation {
+                animation: correctPulse 0.5s ease-in-out;
+            }
+            .incorrect-animation {
+                animation: incorrectShake 0.5s ease-in-out;
+            }
+        }
+    </style>
+    
+    <!-- 导入日语字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 基础动画定义 */
+        @keyframes btnAppear {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes correctPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-5px); }
+            80% { transform: translateX(5px); }
+        }
+        
+        /* 字符切换动画 */
+        .char-enter {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        
+        .char-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 500ms, transform 500ms;
+        }
+        
+        .char-exit {
+            opacity: 1;
+        }
+        
+        .char-exit-active {
+            opacity: 0;
+            transform: scale(1.2);
+            transition: opacity 500ms, transform 500ms;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 to-purple-50 min-h-screen font-sans text-neutral flex flex-col items-center justify-center p-4">
+    <!-- 页面标题 -->
+    <header class="text-center mb-8 md:mb-12">
+        <h1 class="text-[clamp(2rem,5vw,3rem)] font-bold text-primary mb-2">日语平假名学习</h1>
+        <p class="text-gray-600 text-lg">选择正确的读音，提升你的日语基础</p>
+    </header>
+    
+    <!-- 主游戏区域 -->
+    <main class="w-full max-w-md flex flex-col items-center">
+        <!-- 分数显示 -->
+        <div class="flex justify-between w-full mb-6 bg-white rounded-lg shadow-md p-4 w-full">
+            <div class="flex items-center">
+                <i class="fa fa-check-circle text-correct mr-2"></i>
+                <span>正确: <span id="correct-count" class="font-bold">0</span></span>
+            </div>
+            <div class="flex items-center">
+                <i class="fa fa-times-circle text-incorrect mr-2"></i>
+                <span>错误: <span id="wrong-count" class="font-bold">0</span></span>
+            </div>
+        </div>
+        
+        <!-- 字符显示卡片 -->
+        <div class="relative bg-white rounded-xl shadow-lg p-8 md:p-12 w-full mb-8 flex flex-col items-center justify-center min-h-[200px]">
+            <div id="character-container" class="w-full flex justify-center items-center">
+                <div id="current-character" class="font-japanese text-[clamp(5rem,15vw,8rem)] font-bold text-primary char-animation"></div>
+            </div>
+            
+            <!-- 反馈信息 -->
+            <div id="feedback" class="absolute bottom-4 left-0 right-0 text-center hidden"></div>
+        </div>
+        
+        <!-- 选项按钮区域 -->
+        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+            <!-- 选项按钮会通过JS动态生成 -->
+        </div>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+        <p>© 2023 日语学习助手 | 平假名练习工具</p>
+    </footer>
+
+    <script>
+        // 平假名数据 - 字符和对应的罗马音
+        const hiraganaData = [
+            { char: 'あ', reading: 'a' },
+            { char: 'い', reading: 'i' },
+            { char: 'う', reading: 'u' },
+            { char: 'え', reading: 'e' },
+            { char: 'お', reading: 'o' },
+            { char: 'か', reading: 'ka' },
+            { char: 'き', reading: 'ki' },
+            { char: 'く', reading: 'ku' },
+            { char: 'け', reading: 'ke' },
+            { char: 'こ', reading: 'ko' },
+            { char: 'さ', reading: 'sa' },
+            { char: 'し', reading: 'shi' },
+            { char: 'す', reading: 'su' },
+            { char: 'せ', reading: 'se' },
+            { char: 'そ', reading: 'so' },
+            { char: 'た', reading: 'ta' },
+            { char: 'ち', reading: 'chi' },
+            { char: 'つ', reading: 'tsu' },
+            { char: 'て', reading: 'te' },
+            { char: 'と', reading: 'to' },
+            { char: 'な', reading: 'na' },
+            { char: 'に', reading: 'ni' },
+            { char: 'ぬ', reading: 'nu' },
+            { char: 'ね', reading: 'ne' },
+            { char: 'の', reading: 'no' },
+            { char: 'は', reading: 'ha' },
+            { char: 'ひ', reading: 'hi' },
+            { char: 'ふ', reading: 'fu' },
+            { char: 'へ', reading: 'he' },
+            { char: 'ほ', reading: 'ho' },
+            { char: 'ま', reading: 'ma' },
+            { char: 'み', reading: 'mi' },
+            { char: 'む', reading: 'mu' },
+            { char: 'め', reading: 'me' },
+            { char: 'も', reading: 'mo' },
+            { char: 'や', reading: 'ya' },
+            { char: 'ゆ', reading: 'yu' },
+            { char: 'よ', reading: 'yo' },
+            { char: 'ら', reading: 'ra' },
+            { char: 'り', reading: 'ri' },
+            { char: 'る', reading: 'ru' },
+            { char: 'れ', reading: 're' },
+            { char: 'ろ', reading: 'ro' },
+            { char: 'わ', reading: 'wa' },
+            { char: 'を', reading: 'wo' },
+            { char: 'ん', reading: 'n' }
+        ];
+
+        // 游戏状态变量
+        let currentItem = null;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let usedIndices = []; // 跟踪已使用过的平假名索引，避免重复
+
+        // DOM元素
+        const characterElement = document.getElementById('current-character');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackElement = document.getElementById('feedback');
+        const correctCountElement = document.getElementById('correct-count');
+        const wrongCountElement = document.getElementById('wrong-count');
+
+        // 初始化游戏
+        function initGame() {
+            loadNewCharacter();
+        }
+
+        // 随机选择一个新的平假名
+        function loadNewCharacter() {
+            // 重置UI状态
+            optionsContainer.innerHTML = '';
+            feedbackElement.classList.add('hidden');
+            characterElement.classList.remove('correct-animation', 'incorrect-animation');
+            
+            // 如果所有平假名都已使用过，则重置已使用列表
+            if (usedIndices.length >= hiraganaData.length) {
+                usedIndices = [];
+            }
+            
+            // 随机选择一个未使用过的平假名
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * hiraganaData.length);
+            } while (usedIndices.includes(randomIndex));
+            
+            usedIndices.push(randomIndex);
+            currentItem = hiraganaData[randomIndex];
+            
+            // 显示当前平假名并添加动画
+            characterElement.textContent = currentItem.char;
+            characterElement.style.opacity = '0';
+            characterElement.style.transform = 'scale(0.8)';
+            
+            setTimeout(() => {
+                characterElement.style.opacity = '1';
+                characterElement.style.transform = 'scale(1)';
+            }, 50);
+            
+            // 生成选项
+            generateOptions(currentItem);
+        }
+
+        // 生成四个选项，其中一个是正确答案
+        function generateOptions(correctItem) {
+            // 创建选项数组，先加入正确答案
+            const options = [correctItem.reading];
+            
+            // 收集其他可能的错误选项
+            const otherReadings = hiraganaData
+                .filter(item => item.reading !== correctItem.reading)
+                .map(item => item.reading);
+            
+            // 随机选择3个错误选项
+            while (options.length < 4) {
+                const randomIndex = Math.floor(Math.random() * otherReadings.length);
+                const randomReading = otherReadings[randomIndex];
+                
+                // 确保选项不重复
+                if (!options.includes(randomReading)) {
+                    options.push(randomReading);
+                }
+            }
+            
+            // 打乱选项顺序
+            shuffleArray(options);
+            
+            // 创建选项按钮
+            options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = `bg-white border-2 border-primary text-primary font-semibold py-3 px-4 rounded-lg card-hover focus:outline-none focus:ring-2 focus:ring-primary/50`;
+                button.textContent = option;
+                button.dataset.correct = option === correctItem.reading;
+                
+                // 添加点击事件
+                button.addEventListener('click', handleOptionSelect);
+                
+                // 添加延迟动画效果
+                button.style.opacity = '0';
+                optionsContainer.appendChild(button);
+                
+                // 触发动画
+                setTimeout(() => {
+                    button.style.opacity = '1';
+                    button.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        }
+
+        // 处理选项选择
+        function handleOptionSelect(event) {
+            const selectedButton = event.target;
+            const isCorrect = selectedButton.dataset.correct === 'true';
+            
+            // 禁用所有按钮，防止重复点击
+            const allButtons = optionsContainer.querySelectorAll('button');
+            allButtons.forEach(btn => btn.disabled = true);
+            
+            // 显示反馈
+            if (isCorrect) {
+                // 正确答案处理
+                selectedButton.classList.remove('border-primary', 'text-primary');
+                selectedButton.classList.add('border-correct', 'bg-correct/10', 'text-correct', 'correct-animation');
+                
+                feedbackElement.textContent = '正确！太棒了！';
+                feedbackElement.className = 'absolute bottom-4 left-0 right-0 text-center text-correct font-medium';
+                
+                correctCount++;
+                correctCountElement.textContent = correctCount;
+                characterElement.classList.add('correct-animation');
+            } else {
+                // 错误答案处理
+                selectedButton.classList.remove('border-primary', 'text-primary');
+                selectedButton.classList.add('border-incorrect', 'bg-incorrect/10', 'text-incorrect', 'incorrect-animation');
+                
+                // 高亮正确答案
+                allButtons.forEach(btn => {
+                    if (btn.dataset.correct === 'true') {
+                        btn.classList.remove('border-primary', 'text-primary');
+                        btn.classList.add('border-correct', 'bg-correct/10', 'text-correct');
+                    }
+                });
+                
+                feedbackElement.textContent = `错误，正确答案是: ${currentItem.reading}`;
+                feedbackElement.className = 'absolute bottom-4 left-0 right-0 text-center text-incorrect font-medium';
+                
+                wrongCount++;
+                wrongCountElement.textContent = wrongCount;
+                characterElement.classList.add('incorrect-animation');
+            }
+            
+            // 延迟后加载新字符
+            setTimeout(loadNewCharacter, 1500);
+        }
+
+        // 数组打乱函数
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 页面加载完成后初始化游戏
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
